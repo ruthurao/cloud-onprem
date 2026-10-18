@@ -1,0 +1,135 @@
+     1	"""One prompt, two transports.
+     2	
+     3	The model writes a short rationale only. score_facts owns the score.
+     4	"""
+     5	
+     6	import json
+     7	import os
+     8	import urllib.request
+     9	
+    10	OLLAMA_URL = "http://127.0.0.1:11434/api/chat"
+    11	OLLAMA_MODEL = "gemma3:4b"
+    12	BEDROCK_MODEL = "google.gemma-3-4b-it"
+    13	
+    14	PROMPT = (
+    15	    "Write a short rationale for this homeowners application. "
+    16	    "The score, band, factors, and hard_refer values are already decided and must not change. "
+    17	    'Reply with JSON only, shaped {"rationale": "one or two sentences"}.'
+    18	)
+    19	
+    20	
+    21	def prompt_text(application, facts):
+    22	    payload = {
+    23	        "application_id": application["id"],
+    24	        "full_name": application["full_name"],
+    25	        "product": application["product"],
+    26	        "score": facts["score"],
+    27	        "band": facts["band"],
+    28	        "factors": facts["factors"],
+    29	        "hard_refer": facts["hard_refer"],
+    30	    }
+    31	    return PROMPT + "\n" + json.dumps(payload, separators=(",", ":"))
+    32	
+    33	
+    34	def ollama_chat_body(prompt):
+    35	    return {
+    36	        "model": OLLAMA_MODEL,
+    37	        "messages": [{"role": "user", "content": prompt}],
+    38	        "stream": False,
+    39	    }
+    40	
+    41	
+    42	def bedrock_invoke_body(prompt):
+    43	    return {
+    44	        "messages": [{"role": "user", "content": prompt}],
+    45	        "max_tokens": 256,
+    46	        "temperature": 0.2,
+    47	    }
+    48	
+    49	
+    50	def complete(prompt, provider=None):
+    51	    chosen = provider or os.environ.get("LLM_PROVIDER", "ollama")
+    52	    if chosen == "ollama":
+    53	        return _ollama(prompt)
+    54	    if chosen == "bedrock":
+    55	        return _bedrock(prompt)
+    56	    raise ValueError(f"unknown LLM_PROVIDER {chosen}")
+    57	
+    58	
+    59	def _ollama(prompt):
+    60	    body = json.dumps(ollama_chat_body(prompt)).encode()
+    61	    request = urllib.request.Request(
+    62	        OLLAMA_URL,
+    63	        data=body,
+    64	        headers={"Content-Type": "application/json"},
+    65	        method="POST",
+    66	    )
+    67	    with urllib.request.urlopen(request, timeout=180) as response:
+    68	        payload = json.loads(response.read().decode())
+    69	    return payload["message"]["content"]
+    70	
+    71	
+    72	def _bedrock(prompt):
+    73	    import boto3
+    74	
+    75	    region = os.environ.get("AWS_REGION") or os.environ.get("AWS_DEFAULT_REGION")
+    76	    if not region or region == "APPROVED_REGION":
+    77	        raise RuntimeError("AWS_REGION is not set to an approved region")
+    78	    client = boto3.client("bedrock-runtime", region_name=region)
+    79	    response = client.invoke_model(
+    80	        modelId=BEDROCK_MODEL,
+    81	        body=json.dumps(bedrock_invoke_body(prompt)),
+    82	        contentType="application/json",
+    83	        accept="application/json",
+    84	    )
+    85	    payload = json.loads(response["body"].read())
+    86	    return bedrock_text(payload)
+    87	
+    88	
+    89	def bedrock_text(payload):
+    90	    choices = payload.get("choices") or []
+    91	    if choices:
+    92	        content = (choices[0].get("message") or {}).get("content")
+    93	        if isinstance(content, str):
+    94	            return content
+    95	        if isinstance(content, list):
+    96	            parts = []
+    97	            for part in content:
+    98	                if isinstance(part, str):
+    99	                    parts.append(part)
+   100	                elif isinstance(part, dict):
+   101	                    parts.append(part.get("text") or "")
+   102	            return "".join(parts)
+   103	    generation = payload.get("generation")
+   104	    if isinstance(generation, str):
+   105	        return generation
+   106	    raise ValueError("bedrock response had no rationale text")
+   107	
+   108	
+   109	def rationale_from_model_text(raw, facts):
+   110	    try:
+   111	        data = json.loads(_json_object(raw))
+   112	        rationale = data["rationale"]
+   113	        if not isinstance(rationale, str) or not rationale.strip():
+   114	            raise ValueError("empty rationale")
+   115	    except (json.JSONDecodeError, KeyError, TypeError, ValueError):
+   116	        return {
+   117	            "score": facts["score"],
+   118	            "rationale": "quality miss: model response was not the expected JSON rationale",
+   119	            "quality_miss": True,
+   120	        }
+   121	    return {
+   122	        "score": facts["score"],
+   123	        "rationale": rationale.strip(),
+   124	        "quality_miss": False,
+   125	    }
+   126	
+   127	
+   128	def _json_object(raw):
+   129	    text = (raw or "").strip()
+   130	    if text.startswith("```"):
+   131	        lines = text.splitlines()[1:]
+   132	        if lines and lines[-1].strip().startswith("```"):
+   133	            lines = lines[:-1]
+   134	        text = "\n".join(lines).strip()
+   135	    return text

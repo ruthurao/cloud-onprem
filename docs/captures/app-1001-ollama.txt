@@ -1,0 +1,9 @@
+application: APP-1001
+name: Alice Chen
+product: homeowners
+score: 13
+band: low
+factors: ["base", "credit excellent"]
+hard_refer: []
+provider: ollama
+rationale: Alice Chen's excellent credit score and strong base factors contribute to a low risk profile, justifying this homeowner's application at a score of 13 and band.
