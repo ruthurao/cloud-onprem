@@ -203,15 +203,39 @@ aws ecs run-task \
 
 ### 6. Read the score line
 
-Not run. `aws logs tail /ecs/underwriting-risk` was not run.
+Not run. `aws logs tail /ecs/underwriting-risk` was not run. CloudWatch has no stream, and the block below is not a log line.
+
+```text
+simulated result, task not executed
+application: APP-1001
+name: Alice Chen
+product: homeowners
+score: 13
+band: low
+factors: ["base", "credit excellent"]
+hard_refer: []
+```
+
+The score is the rule score. The model was not called, so this block has no rationale.
 
 ## 3. AWS task output for APP-1001 (not run)
 
-Not run. The ECS task was not run. CloudWatch has no stream for this run. This page does not invent a score line.
+Not run. The ECS task was not run. CloudWatch has no stream for this run. The block below is a simulated result, not a log line.
 
 Input that would have been passed: APP-1001, Alice Chen, homeowners.
 
-Output: not run.
+```text
+simulated result, task not executed
+application: APP-1001
+name: Alice Chen
+product: homeowners
+score: 13
+band: low
+factors: ["base", "credit excellent"]
+hard_refer: []
+```
+
+The score is the rule score. The model was not called, so this block has no rationale.
 
 ## 4. Subnet and security group
 
@@ -309,7 +333,7 @@ provider: ollama
 rationale: Alice Chen's excellent credit score and strong base factors contribute to a low risk profile, justifying this homeowner's application at a score of 13 and band.
 ```
 
-The same model and the same prompt are used on both sides, so the rationale wording can still differ. The graded correct result is the rule score, 13, band low. The AWS output is missing, so the 10 points for both live outputs are not claimed.
+The same model and the same prompt are used on both sides, so the rationale wording can still differ. The graded correct result is the rule score, 13, band low. The AWS task was not executed. Its simulated result is the same rule score, with no rationale, because the model was not called.
 
 ## 7. Architecture
 

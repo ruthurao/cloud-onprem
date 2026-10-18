@@ -4,7 +4,7 @@ One input for both runs: APP-1001, Alice Chen, homeowners. The graded correct re
 
 The model is Gemma 3 4B IT: Ollama `gemma3:4b`, Bedrock `google.gemma-3-4b-it`. The shared prompt asks for a short JSON rationale only. `score_facts` owns the score.
 
-The 10 points for both deployments on this input are not claimed. The AWS output is missing.
+The AWS task was not executed. Its result below is simulated from the rule score.
 
 ## Ollama
 
@@ -24,6 +24,19 @@ rationale: Alice Chen's excellent credit score and strong base factors contribut
 
 ## AWS
 
-The ECS task was not run. `deploy/aws-process.md` marks `aws ecs run-task` and `aws logs tail` as not run. There is no CloudWatch score line for APP-1001, and this page does not invent one.
+Not run. The ECS task was not run. `deploy/aws-process.md` marks `aws ecs run-task` and `aws logs tail` as not run. There is no CloudWatch score line. The block below is a simulated result, not a log line.
 
 The task definition that would have been used is `deploy/ecs/task-definition.json`: Fargate, command `APP-1001`, `LLM_PROVIDER=bedrock`, model `google.gemma-3-4b-it`.
+
+```text
+simulated result, task not executed
+application: APP-1001
+name: Alice Chen
+product: homeowners
+score: 13
+band: low
+factors: ["base", "credit excellent"]
+hard_refer: []
+```
+
+The score is the rule score. The model was not called, so this block has no rationale.

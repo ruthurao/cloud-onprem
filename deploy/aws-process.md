@@ -66,8 +66,21 @@ aws ecs run-task \
 
 ## 6. Read the score line from logs
 
-Not run. There is no score line. The task was not started, so CloudWatch has no stream for this run, and this page does not invent one.
+Not run. There is no CloudWatch score line. The task was not started. The command below was not run, and the simulated block under it is not a log line.
 
 ```text
 aws logs tail /ecs/underwriting-risk --follow --profile underwriting-risk
 ```
+
+```text
+simulated result, task not executed
+application: APP-1001
+name: Alice Chen
+product: homeowners
+score: 13
+band: low
+factors: ["base", "credit excellent"]
+hard_refer: []
+```
+
+The score is the rule score. The model was not called, so this block has no rationale.
