@@ -1,0 +1,39 @@
+{
+  "family": "underwriting-risk",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "256",
+  "memory": "512",
+  "runtimePlatform": {
+    "cpuArchitecture": "X86_64",
+    "operatingSystemFamily": "LINUX"
+  },
+  "taskRoleArn": "arn:aws:iam::ACCOUNT_ID:role/underwriting-risk-task-role",
+  "executionRoleArn": "arn:aws:iam::ACCOUNT_ID:role/underwriting-risk-execution-role",
+  "containerDefinitions": [
+    {
+      "name": "underwriting-risk",
+      "image": "ACCOUNT_ID.dkr.ecr.APPROVED_REGION.amazonaws.com/underwriting-risk:phase1",
+      "essential": true,
+      "command": ["APP-1001"],
+      "environment": [
+        {
+          "name": "LLM_PROVIDER",
+          "value": "bedrock"
+        },
+        {
+          "name": "AWS_REGION",
+          "value": "APPROVED_REGION"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/underwriting-risk",
+          "awslogs-region": "APPROVED_REGION",
+          "awslogs-stream-prefix": "risk"
+        }
+      }
+    }
+  ]
+}
